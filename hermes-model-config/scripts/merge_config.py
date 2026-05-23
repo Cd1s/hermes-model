@@ -79,8 +79,8 @@ def parse_model_spec(spec: str) -> Tuple[str, int, int]:
     """Parse a "model_id:context:output" CLI arg.
 
     Examples:
-        gpt-5.5:400000:32000
-        deepseek-chat:128000:16384
+        main-model:400000:32000
+        compact-model:128000:16384
     """
     parts = spec.split(":")
     if len(parts) != 3:
@@ -194,7 +194,7 @@ def make_argparser() -> argparse.ArgumentParser:
     p.add_argument("--model", dest="model_specs", action="append", type=parse_model_spec,
                    default=[], required=True,
                    metavar="MODEL_ID:CONTEXT:MAX_OUTPUT",
-                   help="Repeatable. At least one. Example: gpt-5.5:400000:32000")
+                   help="Repeatable. At least one. Example: main-model:400000:32000")
 
     auth = p.add_mutually_exclusive_group(required=True)
     auth.add_argument("--api-key", default=None,
@@ -341,7 +341,7 @@ def merge(args: argparse.Namespace) -> int:
     if backup_path is not None:
         print(f"Backup written to: {backup_path}")
     print(
-        "Next: run `python scripts/validate_config.py "
+        "Next: run `python3 scripts/validate_config.py "
         f"--config {config_path}` to sanity-check structure, "
         "then `hermes config check` and `hermes doctor`."
     )

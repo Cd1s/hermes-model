@@ -11,7 +11,7 @@
 # (read from ~/.hermes/.env). Never inline a real key here.
 
 model:
-  default: DEFAULT_MODEL              # e.g. gpt-5.5
+  default: DEFAULT_MODEL              # e.g. main-model
   provider: PROVIDER_NAME             # must match custom_providers[].name below
   api_mode: API_MODE                  # chat_completions | codex_responses | anthropic_messages
   max_tokens: 32000                   # output cap; integer, not "32K"

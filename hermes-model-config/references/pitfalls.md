@@ -8,9 +8,9 @@ on machines that have run this configuration end-to-end.
 `codex_responses` and `chat_completions` are not interchangeable. A Codex-style
 server pointed at via `chat_completions` will return responses where
 `tool_calls.arguments` is empty (no JSON), and Hermes spins on retries.
-`localopenai` style servers (LM Studio / vLLM with OpenAI-codex shim) must use
-`codex_responses`. Plain OpenAI / DeepSeek / together.ai / etc. use
-`chat_completions`. Anthropic-compatible proxies use `anthropic_messages`.
+Endpoints that speak the Codex-style Responses API must use `codex_responses`.
+Plain OpenAI-compatible chat endpoints use `chat_completions`.
+Anthropic-Messages-compatible proxies use `anthropic_messages`.
 
 Set `api_mode` explicitly on both the `model:` block and the `custom_providers`
 entry — do not rely on URL auto-detection.
@@ -75,8 +75,8 @@ Then in YAML use `key_env: PROVIDER_API_KEY` (preferred) or
 
 The string used in `model.provider` and the one used in `custom_providers[].name`
 must match exactly. The auxiliary compression model adds a `custom:` prefix when
-referencing a custom provider — so `model.provider: localopenai` pairs with
-`auxiliary.compression.provider: custom:localopenai`. A mismatch silently routes
+referencing a custom provider — so `model.provider: myprovider` pairs with
+`auxiliary.compression.provider: custom:myprovider`. A mismatch silently routes
 the compression call to the auto-detect chain (often the main provider works,
 but a misnamed custom provider returns "provider not found" warnings in logs).
 
@@ -90,9 +90,9 @@ user-visible error. Match or exceed the main model's `context_length`.
 ## 10. Picker hides providers via `model_picker.hidden_providers`
 
 If your new provider does not show up in `/model`, check
-`model_picker.hidden_providers` in `config.yaml` — by default Hermes hides
-`anthropic`, `xai`, `xai-oauth` on machines that opted out. Remove your provider
-from that list if you suppressed it earlier.
+`model_picker.hidden_providers` in `config.yaml` — providers listed there are
+suppressed from the picker even if they're declared elsewhere. Remove your
+provider's name from that list if it was suppressed earlier.
 
 ## 11. `custom_providers:` must be a YAML list, not a dict
 

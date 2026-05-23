@@ -23,8 +23,7 @@ schema** that `hermes_cli/config.py::get_compatible_custom_providers` reads at
 runtime and that `hermes model` writes by default. The newer dict-keyed
 `providers:` schema is read-compatible, but the merge tooling here writes the
 list form because it round-trips losslessly with every Hermes version since
-v0.10 and because the user's reference export in
-`/root/.hermes/hermes-model-config-export.yaml` is in that shape.
+v0.10.
 
 Outputs:
 
@@ -52,10 +51,9 @@ terminal, browser, cron, skills, kanban — are preserved untouched.
 - The user wants a no-op live test — drop a placeholder provider in, confirm
   Hermes still parses the config, then restore exactly.
 
-**Don't use this skill for:** built-in providers (Anthropic, OpenRouter, Nous,
-Codex, Gemini, etc.) — those are configured via `hermes model` + env vars and
-do not need a `custom_providers` entry. For those, point the user at
-`hermes model`.
+**Don't use this skill for:** providers already built into Hermes — those are
+configured via `hermes model` + env vars and do not need a `custom_providers`
+entry. For those, point the user at `hermes model`.
 
 ## Inputs to collect from the user
 
@@ -109,20 +107,20 @@ Both `config.yaml` and `.env` are copied (with permissions preserved) plus a
 ### Step 2: Merge
 
 ```bash
-python scripts/merge_config.py \
+python3 scripts/merge_config.py \
     --config ~/.hermes/config.yaml \
-    --provider-name localopenai \
-    --base-url http://192.168.6.97:8080/v1 \
+    --provider-name myprovider \
+    --base-url http://127.0.0.1:8080/v1 \
     --api-mode codex_responses \
-    --default-model gpt-5.5 \
-    --model gpt-5.5:400000:32000 \
-    --model gpt-5.3-codex:400000:32000 \
+    --default-model main-model \
+    --model main-model:400000:32000 \
+    --model compress-model:400000:32000 \
     --api-key '' \
     --set-default --max-tokens 32000 \
     --compression-threshold 0.875 \
-    --compression-provider custom:localopenai \
-    --compression-model gpt-5.3-codex \
-    --compression-base-url http://192.168.6.97:8080/v1 \
+    --compression-provider custom:myprovider \
+    --compression-model compress-model \
+    --compression-base-url http://127.0.0.1:8080/v1 \
     --compression-api-mode codex_responses \
     --compression-context-length 400000
 ```
@@ -139,17 +137,17 @@ Behavior:
 For a hosted provider (key in `.env`):
 
 ```bash
-python scripts/merge_config.py \
+python3 scripts/merge_config.py \
     --config ~/.hermes/config.yaml \
-    --provider-name aicodee \
-    --base-url https://v2.aicodee.com/v1 \
+    --provider-name hostedprovider \
+    --base-url https://api.example.com/v1 \
     --api-mode chat_completions \
-    --default-model MiniMax-M2.7-highspeed \
-    --model MiniMax-M2.7-highspeed:200000:64000 \
-    --key-env AICODEE_API_KEY
+    --default-model fast-model \
+    --model fast-model:200000:64000 \
+    --key-env HOSTEDPROVIDER_API_KEY
 ```
 
-Then make sure `~/.hermes/.env` contains `AICODEE_API_KEY=...`.
+Then make sure `~/.hermes/.env` contains `HOSTEDPROVIDER_API_KEY=...`.
 
 ### Step 3: Validate
 
@@ -157,7 +155,7 @@ Then make sure `~/.hermes/.env` contains `AICODEE_API_KEY=...`.
 **schema** of the merged config:
 
 ```bash
-python scripts/validate_config.py --config ~/.hermes/config.yaml
+python3 scripts/validate_config.py --config ~/.hermes/config.yaml
 ```
 
 Hard errors (non-zero exit): bad list/dict shape, bad `api_mode`, non-int
@@ -206,23 +204,23 @@ The fragment this skill emits (see `templates/custom_provider.yaml`):
 
 ```yaml
 model:
-  default: gpt-5.5
-  provider: localopenai
+  default: main-model
+  provider: myprovider
   api_mode: codex_responses
   max_tokens: 32000
   # context_length: 400000   # optional override
 
 custom_providers:
-  - name: localopenai
-    base_url: http://192.168.6.97:8080/v1
-    api_key: ''                    # or: key_env: PROVIDER_API_KEY
+  - name: myprovider
+    base_url: http://127.0.0.1:8080/v1
+    api_key: ''                    # or: key_env: MYPROVIDER_API_KEY
     api_mode: codex_responses
-    model: gpt-5.5
+    model: main-model
     models:
-      gpt-5.5:
+      main-model:
         context_length: 400000
         max_output_tokens: 32000
-      gpt-5.3-codex:
+      compress-model:
         context_length: 400000
         max_output_tokens: 32000
 
@@ -232,9 +230,9 @@ compression:
 
 auxiliary:
   compression:
-    provider: custom:localopenai
-    model: gpt-5.3-codex
-    base_url: http://192.168.6.97:8080/v1
+    provider: custom:myprovider
+    model: compress-model
+    base_url: http://127.0.0.1:8080/v1
     api_key: ''
     api_mode: codex_responses
     context_length: 400000
@@ -270,8 +268,8 @@ Full schema reference: `references/schema.md`. Pitfall catalog:
    to fail and middle turns to drop silently. The validator emits a warning.
 
 7. **Pointing `auxiliary.compression.provider` at a custom provider without
-   the `custom:` prefix.** Bare `provider: localopenai` does not resolve;
-   needs `provider: custom:localopenai`.
+   the `custom:` prefix.** Bare `provider: myprovider` does not resolve;
+   needs `provider: custom:myprovider`.
 
 8. **Treating internal LAN base_urls as portable.** A `192.168.x.y` endpoint
    that works on the source machine will time out on a different network.
@@ -290,9 +288,9 @@ Full schema reference: `references/schema.md`. Pitfall catalog:
 
 - [ ] `~/.hermes/backups/hermes-model-config/<tag>/{config.yaml,.env}` exists
       before any merge.
-- [ ] `python scripts/merge_config.py ... --dry-run` previewed the result and
+- [ ] `python3 scripts/merge_config.py ... --dry-run` previewed the result and
       the user OK'd it (skip only when running unattended in a script).
-- [ ] After merge: `python scripts/validate_config.py --config ~/.hermes/config.yaml`
+- [ ] After merge: `python3 scripts/validate_config.py --config ~/.hermes/config.yaml`
       exits 0.
 - [ ] `hermes config check` exits 0; no missing required env vars.
 - [ ] `hermes doctor` exits 0 or only emits unrelated advisories.
@@ -308,17 +306,17 @@ Full schema reference: `references/schema.md`. Pitfall catalog:
 ### Add a hosted provider with key in `.env`
 
 ```bash
-bash scripts/backup_restore.sh backup hosted-deepseek
-python scripts/merge_config.py \
-    --provider-name deepseek \
-    --base-url https://api.deepseek.com \
+bash scripts/backup_restore.sh backup hosted-example
+python3 scripts/merge_config.py \
+    --provider-name hostedprovider \
+    --base-url https://api.example.com/v1 \
     --api-mode chat_completions \
-    --default-model deepseek-v4-flash \
-    --model deepseek-v4-flash:1000000:384000 \
-    --model deepseek-v4-pro:1000000:384000 \
-    --key-env DEEPSEEK_API_KEY \
+    --default-model fast-model \
+    --model fast-model:1000000:384000 \
+    --model pro-model:1000000:384000 \
+    --key-env HOSTEDPROVIDER_API_KEY \
     --provider-context-length 1000000
-python scripts/validate_config.py
+python3 scripts/validate_config.py
 hermes config check
 ```
 
@@ -326,14 +324,14 @@ hermes config check
 
 ```bash
 bash scripts/backup_restore.sh backup test-noop
-python scripts/merge_config.py \
+python3 scripts/merge_config.py \
     --provider-name testskill_demo \
     --base-url https://example.invalid/v1 \
     --api-mode chat_completions \
     --default-model demo-model \
     --model demo-model:8192:2048 \
     --api-key ''
-python scripts/validate_config.py
+python3 scripts/validate_config.py
 hermes config check
 bash scripts/backup_restore.sh restore test-noop
 bash scripts/backup_restore.sh verify  test-noop
@@ -343,12 +341,12 @@ bash scripts/backup_restore.sh verify  test-noop
 
 ```bash
 bash scripts/backup_restore.sh backup
-python scripts/merge_config.py \
-    --provider-name localopenai \
-    --base-url http://192.168.6.97:8080/v1 \
+python3 scripts/merge_config.py \
+    --provider-name myprovider \
+    --base-url http://127.0.0.1:8080/v1 \
     --api-mode codex_responses \
-    --default-model gpt-5.5 \
-    --model gpt-5.5:400000:32000 \
+    --default-model main-model \
+    --model main-model:400000:32000 \
     --api-key '' \
     --set-default --max-tokens 32000
 hermes gateway restart   # only if a gateway is running

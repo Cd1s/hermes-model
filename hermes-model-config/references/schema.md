@@ -20,13 +20,13 @@ Hermes reads both and merges via `get_compatible_custom_providers()`. They are
 
 ```yaml
 custom_providers:
-  - name: localopenai
-    base_url: http://192.168.6.97:8080/v1
+  - name: myprovider
+    base_url: http://127.0.0.1:8080/v1
     api_key: ''
     api_mode: codex_responses
-    model: gpt-5.5
+    model: main-model
     models:
-      gpt-5.5:
+      main-model:
         context_length: 400000
         max_output_tokens: 32000
 ```
@@ -35,14 +35,14 @@ custom_providers:
 
 ```yaml
 providers:
-  localopenai:
-    name: localopenai
-    base_url: http://192.168.6.97:8080/v1
+  myprovider:
+    name: myprovider
+    base_url: http://127.0.0.1:8080/v1
     api_key: ''
     api_mode: codex_responses
-    default_model: gpt-5.5
+    default_model: main-model
     models:
-      gpt-5.5:
+      main-model:
         context_length: 400000
         max_output_tokens: 32000
 ```
@@ -117,14 +117,15 @@ or middle-of-conversation turns are silently dropped when compression fails.
 
 `runtime_provider.resolve_provider_full(name, user_providers, custom_providers)`:
 
-1. Built-in providers (Anthropic, OpenRouter, Nous, Codex, Gemini, etc.).
+1. Built-in providers (the named aliases Hermes ships with — see
+   `cli-config.yaml.example` in the hermes-agent repo for the current list).
 2. `providers:` dict from config.
 3. `custom_providers:` list from config (legacy).
 4. URL-based fallback: `base_url` with `provider: custom` and no name resolves
    against the credential pool.
 
-The first match wins. A `custom_providers` entry whose `name` collides with a
-built-in alias (e.g. `kimi`) overrides the alias.
+The first match wins. A `custom_providers` entry whose `name` collides with one
+of those built-in aliases overrides the alias.
 
 ## `api_mode` selection
 

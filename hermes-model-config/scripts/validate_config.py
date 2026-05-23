@@ -17,7 +17,7 @@ import argparse
 import os
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 try:
     from ruamel.yaml import YAML  # type: ignore
@@ -35,18 +35,32 @@ VALID_API_MODES = {
     "",
 }
 
-# Built-in provider aliases used by Hermes. Not exhaustive — we only use this
-# to suppress "unknown provider" warnings for well-known names.
-BUILTIN_PROVIDERS = {
-    "auto", "openrouter", "anthropic", "claude", "claude-code", "nous",
-    "nous-api", "openai-codex", "codex", "copilot", "copilot-acp",
-    "gemini", "google-gemini-cli", "zai", "kimi-coding", "kimi-coding-cn",
-    "minimax", "minimax-cn", "novita", "ai-gateway", "kilocode", "lmstudio",
-    "xiaomi", "arcee", "gmi", "deepseek", "huggingface", "nvidia", "xai",
-    "xai-oauth", "alibaba", "alibaba-coding-plan", "tencent-tokenhub",
-    "opencode-zen", "opencode-go", "ollama-cloud", "azure-foundry",
-    "bedrock", "custom",
-}
+# Hermes ships a set of built-in provider aliases (the named providers
+# selectable via `hermes model`). Discover them at runtime so this validator
+# does not need to enumerate vendor names. When the Hermes install is not
+# importable, return None and skip built-in-alias warnings rather than emitting
+# false positives for valid local installs.
+def _load_builtin_providers() -> Optional[Set[str]]:
+    base = {"auto", "custom"}
+    try:
+        from hermes_cli import providers as _hp  # type: ignore
+    except Exception:
+        return None
+    candidates: Set[str] = set()
+    for attr in ("BUILTIN_PROVIDERS", "PROVIDER_ALIASES", "PROVIDERS"):
+        v = getattr(_hp, attr, None)
+        if isinstance(v, dict):
+            for k in v.keys():
+                if isinstance(k, str):
+                    candidates.add(k.lower())
+        elif isinstance(v, (set, list, tuple)):
+            for k in v:
+                if isinstance(k, str):
+                    candidates.add(k.lower())
+    return base | candidates
+
+
+BUILTIN_PROVIDERS = _load_builtin_providers()
 
 
 def _load_yaml(path: Path) -> Dict[str, Any]:
@@ -142,7 +156,7 @@ def _validate_top_model(
     if not isinstance(model, dict):
         return
     provider = str(model.get("provider", "")).strip()
-    if provider and provider not in BUILTIN_PROVIDERS:
+    if BUILTIN_PROVIDERS is not None and provider and provider.lower() not in BUILTIN_PROVIDERS:
         if provider not in {p.lower() for p in provider_names}:
             warns.append(
                 f"model.provider {provider!r} is not a built-in alias and is not declared "
