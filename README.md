@@ -72,7 +72,7 @@ After installation, ask Hermes Agent something like:
 Use the hermes-model-config skill to add a custom model provider.
 provider name: myprovider
 base_url: https://api.example.com/v1
-api_mode: chat_completions
+api_mode: codex_responses
 default model: main-model
 model: main-model:200000:64000
 auth: key_env MYPROVIDER_API_KEY
@@ -95,7 +95,7 @@ bash scripts/backup_restore.sh backup before-model-change
 python3 scripts/merge_config.py \
   --provider-name myprovider \
   --base-url https://api.example.com/v1 \
-  --api-mode chat_completions \
+  --api-mode codex_responses \
   --default-model main-model \
   --model main-model:200000:64000 \
   --key-env MYPROVIDER_API_KEY \
