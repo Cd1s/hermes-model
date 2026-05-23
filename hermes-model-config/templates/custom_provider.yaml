@@ -1,0 +1,52 @@
+# Canonical Hermes Agent custom-model fragment.
+#
+# Merge — do NOT overwrite — these top-level sections into ~/.hermes/config.yaml.
+# Hermes also accepts `providers:` (dict, v12+); this template uses the
+# `custom_providers:` list because that is what hermes_cli/config.py reads via
+# get_compatible_custom_providers() and what `hermes model` writes on save.
+#
+# Required user-supplied values: PROVIDER_NAME, BASE_URL, API_MODE, DEFAULT_MODEL,
+# and at least one model under `models:` with `context_length` and `max_output_tokens`.
+# Either `api_key: ''` (no auth needed) or `key_env: PROVIDER_NAME_API_KEY`
+# (read from ~/.hermes/.env). Never inline a real key here.
+
+model:
+  default: DEFAULT_MODEL              # e.g. gpt-5.5
+  provider: PROVIDER_NAME             # must match custom_providers[].name below
+  api_mode: API_MODE                  # chat_completions | codex_responses | anthropic_messages
+  max_tokens: 32000                   # output cap; integer, not "32K"
+  # context_length: 400000            # optional override; leave unset to auto-detect
+
+custom_providers:
+  - name: PROVIDER_NAME               # lowercase, hyphens/underscores, no spaces
+    base_url: BASE_URL                # https://… or http://host:port/v1
+    # Pick ONE auth style:
+    api_key: ''                       # for keyless local servers
+    # key_env: PROVIDER_API_KEY       # for hosted endpoints — put the real value in .env
+    api_mode: API_MODE                # mirror model.api_mode
+    model: DEFAULT_MODEL              # default model for this provider
+    models:
+      DEFAULT_MODEL:
+        context_length: 400000        # total window; integer
+        max_output_tokens: 32000      # output cap; integer
+      # MODEL_2:
+      #   context_length: 131072
+      #   max_output_tokens: 32000
+
+compression:
+  enabled: true
+  threshold: 0.875                    # 0 < threshold <= 1.0 (fraction of context)
+  # target_ratio: 0.20
+  # protect_last_n: 20
+  # hygiene_hard_message_limit: 400
+
+auxiliary:
+  compression:
+    provider: custom:PROVIDER_NAME    # reference custom_providers[].name with `custom:` prefix
+    model: DEFAULT_MODEL              # override only if you want compression on a cheaper model
+    base_url: BASE_URL                # repeat to bypass provider auto-resolution
+    api_key: ''                       # mirror provider auth
+    api_mode: API_MODE
+    context_length: 400000            # must be >= main model's context_length
+    timeout: 120
+    extra_body: {}

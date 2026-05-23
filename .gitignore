@@ -1,0 +1,27 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Editor swap files
+*.swp
+*.swo
+.DS_Store
+
+# Backups produced by this skill or by users testing it
+*.bak
+*.bak_*
+*~
+
+# Local Hermes state — must never be checked in
+.env
+*.env
+auth.json
+*.session
+*.db
+*.db-shm
+*.db-wal
