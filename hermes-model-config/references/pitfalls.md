@@ -5,12 +5,17 @@ on machines that have run this configuration end-to-end.
 
 ## 1. Wrong `api_mode` silently breaks tool calls
 
-`codex_responses` and `chat_completions` are not interchangeable. A Codex-style
-server pointed at via `chat_completions` will return responses where
+`codex_responses` and `chat_completions` are not interchangeable. A
+Responses/Codex-style server pointed at via `chat_completions` will return data
+where
 `tool_calls.arguments` is empty (no JSON), and Hermes spins on retries.
 Endpoints that speak the Codex-style Responses API must use `codex_responses`.
 Plain OpenAI-compatible chat endpoints use `chat_completions`.
 Anthropic-Messages-compatible proxies use `anthropic_messages`.
+
+Do not write `api_mode: responses` in YAML. `responses` is accepted as an
+interactive picker alias and is normalized to `codex_responses`; config files
+must use `codex_responses`.
 
 Set `api_mode` explicitly on both the `model:` block and the `custom_providers`
 entry — do not rely on URL auto-detection.

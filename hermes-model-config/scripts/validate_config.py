@@ -30,10 +30,38 @@ VALID_API_MODES = {
     "chat_completions",
     "codex_responses",
     "anthropic_messages",
-    "gemini_native",
     "bedrock_converse",
     "",
 }
+
+API_MODE_ALIASES = {
+    "responses": "codex_responses",
+    "codex": "codex_responses",
+    "completions": "chat_completions",
+    "chat": "chat_completions",
+    "messages": "anthropic_messages",
+    "anthropic": "anthropic_messages",
+}
+
+
+def _validate_api_mode_value(
+    value: Any,
+    location: str,
+    errors: List[str],
+) -> None:
+    mode = str(value)
+    if mode in VALID_API_MODES:
+        return
+    canonical = API_MODE_ALIASES.get(mode.strip().lower())
+    if canonical:
+        errors.append(
+            f"{location} invalid: {value!r}; use {canonical!r} in config.yaml "
+            "(`responses`/`codex` are interactive picker aliases only)"
+        )
+        return
+    errors.append(
+        f"{location} invalid: {value!r}; expected one of {sorted(VALID_API_MODES - {''})}"
+    )
 
 # Hermes ships a set of built-in provider aliases (the named providers
 # selectable via `hermes model`). Discover them at runtime so this validator
@@ -95,10 +123,7 @@ def _validate_provider_entry(name: str, entry: Dict[str, Any], errors: List[str]
         errors.append(f"custom provider {name!r}: missing base_url")
     api_mode = entry.get("api_mode") or entry.get("transport")
     if api_mode is not None and str(api_mode) not in VALID_API_MODES:
-        errors.append(
-            f"custom provider {name!r}: invalid api_mode {api_mode!r}; "
-            f"expected one of {sorted(VALID_API_MODES - {''})}"
-        )
+        _validate_api_mode_value(api_mode, f"custom provider {name!r}: api_mode", errors)
     if not api_mode:
         warns.append(
             f"custom provider {name!r}: api_mode not set; "
@@ -164,9 +189,7 @@ def _validate_top_model(
             )
     api_mode = model.get("api_mode")
     if api_mode is not None and str(api_mode) not in VALID_API_MODES:
-        errors.append(
-            f"model.api_mode invalid: {api_mode!r}; expected one of {sorted(VALID_API_MODES - {''})}"
-        )
+        _validate_api_mode_value(api_mode, "model.api_mode", errors)
     for key in ("context_length", "max_tokens"):
         val = model.get(key)
         if val is not None and (not isinstance(val, int) or val <= 0):
@@ -213,10 +236,7 @@ def _validate_aux_compression(
             )
     api_mode = comp.get("api_mode")
     if api_mode is not None and str(api_mode) not in VALID_API_MODES:
-        errors.append(
-            f"auxiliary.compression.api_mode invalid: {api_mode!r}; "
-            f"expected one of {sorted(VALID_API_MODES - {''})}"
-        )
+        _validate_api_mode_value(api_mode, "auxiliary.compression.api_mode", errors)
     ctx = comp.get("context_length")
     if ctx is not None and (not isinstance(ctx, int) or ctx <= 0):
         errors.append(

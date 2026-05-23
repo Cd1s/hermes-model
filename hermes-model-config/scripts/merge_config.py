@@ -30,9 +30,38 @@ VALID_API_MODES = {
     "chat_completions",
     "codex_responses",
     "anthropic_messages",
-    "gemini_native",
     "bedrock_converse",
 }
+
+API_MODE_ALIASES = {
+    "responses": "codex_responses",
+    "codex": "codex_responses",
+    "completions": "chat_completions",
+    "chat": "chat_completions",
+    "messages": "anthropic_messages",
+    "anthropic": "anthropic_messages",
+}
+
+
+def _api_mode_arg(value: str) -> str:
+    normalized = str(value or "").strip().lower()
+    if normalized in VALID_API_MODES:
+        return normalized
+    if normalized in API_MODE_ALIASES:
+        canonical = API_MODE_ALIASES[normalized]
+        raise argparse.ArgumentTypeError(
+            f"{value!r} is an interactive alias, not a config value; use {canonical!r}"
+        )
+    raise argparse.ArgumentTypeError(
+        f"invalid api_mode {value!r}; expected one of {sorted(VALID_API_MODES)}"
+    )
+
+
+def _optional_api_mode_arg(value: str) -> str:
+    normalized = str(value or "").strip().lower()
+    if not normalized:
+        return ""
+    return _api_mode_arg(value)
 
 
 def _load_yaml(path: Path) -> Dict[str, Any]:
@@ -188,7 +217,7 @@ def make_argparser() -> argparse.ArgumentParser:
     p.add_argument("--provider-name", required=True,
                    help="custom_providers[].name; lowercase identifier.")
     p.add_argument("--base-url", required=True)
-    p.add_argument("--api-mode", required=True, choices=sorted(VALID_API_MODES))
+    p.add_argument("--api-mode", required=True, type=_api_mode_arg)
     p.add_argument("--default-model", required=True,
                    help="Model id used when this provider is selected without an explicit model.")
     p.add_argument("--model", dest="model_specs", action="append", type=parse_model_spec,
@@ -220,8 +249,7 @@ def make_argparser() -> argparse.ArgumentParser:
     p.add_argument("--compression-model", default=None)
     p.add_argument("--compression-base-url", default=None)
     p.add_argument("--compression-api-key", default=None)
-    p.add_argument("--compression-api-mode", default=None,
-                   choices=sorted(VALID_API_MODES | {""}))
+    p.add_argument("--compression-api-mode", default=None, type=_optional_api_mode_arg)
     p.add_argument("--compression-context-length", type=int, default=None)
     p.add_argument("--compression-timeout", type=int, default=None)
 

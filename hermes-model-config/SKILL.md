@@ -63,7 +63,7 @@ Required (refuse to proceed without):
 |---|---|---|
 | Provider name | `--provider-name` | Lowercase, underscores or hyphens, no spaces. This is the runtime slug — `model.provider: <name>` and `auxiliary.compression.provider: custom:<name>` must reference it exactly. |
 | Endpoint base URL | `--base-url` | OpenAI-compatible base, must include `/v1` for OpenAI/Codex wire APIs. |
-| Wire protocol | `--api-mode` | One of `chat_completions`, `codex_responses`, `anthropic_messages` (also accepted: `gemini_native`, `bedrock_converse`). |
+| Wire protocol | `--api-mode` | One of `chat_completions`, `codex_responses`, `anthropic_messages` (also accepted by this script: `bedrock_converse`). Use `codex_responses` for `/v1/responses`; do not write `responses` in config. |
 | Default model id | `--default-model` | Must match one of the `--model` entries below; auto-added with placeholder values if missing. |
 | At least one model | `--model id:context_length:max_output_tokens` | Repeatable. Both integers must be positive; never write `400K` style strings. |
 | Auth | `--api-key ''` OR `--key-env VARNAME` | Mutually exclusive. Use empty `api_key` for keyless local servers; use `key_env` for hosted endpoints (then place the secret in `~/.hermes/.env`). |
@@ -83,6 +83,21 @@ Optional:
 | Rate-limit pacing | `--rate-limit-delay SECONDS` | Cooldown between requests on rate-limited providers. |
 
 If any required value is missing or ambiguous, ask **once**, then proceed.
+
+### `api_mode` quick rule
+
+Hermes defaults unknown/custom endpoints to `chat_completions` unless URL
+heuristics detect a special endpoint. For custom providers, set `api_mode`
+explicitly:
+
+- `/v1/chat/completions` or ordinary OpenAI-compatible chat server:
+  `chat_completions`
+- `/v1/responses` / Responses API / Codex-compatible tool-calling backend:
+  `codex_responses`
+- Anthropic Messages-compatible endpoint: `anthropic_messages`
+
+`responses` is accepted by Hermes' interactive picker as a user input alias,
+but it is **not** a valid `config.yaml` value. Persist `codex_responses`.
 
 ## Workflow
 
@@ -250,8 +265,9 @@ Full schema reference: `references/schema.md`. Pitfall catalog:
    the user to `/new` or use `/model <id> --provider <name>` mid-session.
 
 2. **Forgetting to set `api_mode`.** URL-based detection is a fallback, not a
-   guarantee. Always set `api_mode` explicitly. A Codex-style endpoint hit with
-   `chat_completions` returns empty `tool_calls.arguments` and Hermes will spin.
+   guarantee. Always set `api_mode` explicitly. A Responses/Codex-style endpoint
+   hit with `chat_completions` returns empty `tool_calls.arguments` and Hermes
+   will spin. The value to write is `codex_responses`, not `responses`.
 
 3. **Committing the API key into `config.yaml`.** Use `key_env: VARNAME` and put
    the secret in `~/.hermes/.env`. Never run `merge_config.py` with

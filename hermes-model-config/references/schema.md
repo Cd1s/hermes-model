@@ -58,7 +58,7 @@ runtime; do not duplicate the same name in both sections.
 | `base_url` | str | OpenAI-compatible base. Must end with `/v1` for OpenAI/Codex wire APIs. |
 | `api_key` | str | Inline auth. Leave `''` for keyless local servers. Never commit a real key. |
 | `key_env` | str | Name of env var in `~/.hermes/.env`. Preferred over `api_key`. Alias: `api_key_env`. |
-| `api_mode` | str | `chat_completions` (most OpenAI-compatible), `codex_responses` (Codex-style Responses API), `anthropic_messages` (Anthropic-compatible proxies). Alias: `transport`. |
+| `api_mode` | str | `chat_completions` (most OpenAI-compatible), `codex_responses` (Responses API / Codex-style tool calling), `anthropic_messages` (Anthropic-compatible proxies). Alias: `transport`. `responses` is an interactive picker alias only, not a config value. |
 | `model` | str | Default model id for this provider. Alias: `default_model`. |
 | `models` | dict | Per-model overrides. Keys are model ids; values must be dicts with `context_length` and `max_output_tokens`. |
 | `context_length` | int | Provider-level fallback when a model is not in `models`. |
@@ -132,12 +132,13 @@ of those built-in aliases overrides the alias.
 | Endpoint behavior | `api_mode` |
 |---|---|
 | OpenAI-style `/v1/chat/completions` (default) | `chat_completions` |
-| OpenAI Codex-style `/v1/responses` | `codex_responses` |
+| Responses API / Codex-style `/v1/responses` | `codex_responses` |
 | Anthropic-compatible `/v1/messages` proxy | `anthropic_messages` |
 
 Wrong `api_mode` typically surfaces as empty `tool_calls.arguments` or 400 errors
 on the first tool-using turn. Set it explicitly; auto-detection from URL is only
-a fallback.
+a fallback. In Hermes' interactive picker, typing `responses` maps to
+`codex_responses`; in YAML, write `codex_responses`.
 
 ## Validation
 
