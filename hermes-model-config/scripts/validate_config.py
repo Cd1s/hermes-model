@@ -31,6 +31,7 @@ VALID_API_MODES = {
     "codex_responses",
     "anthropic_messages",
     "bedrock_converse",
+    "codex_app_server",
     "",
 }
 
@@ -49,7 +50,7 @@ def _validate_api_mode_value(
     location: str,
     errors: List[str],
 ) -> None:
-    mode = str(value)
+    mode = str(value or "").strip().lower()
     if mode in VALID_API_MODES:
         return
     canonical = API_MODE_ALIASES.get(mode.strip().lower())
@@ -91,6 +92,31 @@ def _load_builtin_providers() -> Optional[Set[str]]:
 BUILTIN_PROVIDERS = _load_builtin_providers()
 
 
+def _entry_value(entry: Dict[str, Any], *keys: str) -> Any:
+    for key in keys:
+        if key not in entry:
+            continue
+        value = entry.get(key)
+        if isinstance(value, str):
+            if value.strip():
+                return value
+            continue
+        if value is not None:
+            return value
+    return None
+
+
+def _entry_has_auth(entry: Dict[str, Any]) -> bool:
+    for key in ("api_key", "apiKey"):
+        if key in entry and entry.get(key) is not None:
+            return True
+    for key in ("key_env", "keyEnv", "api_key_env", "apiKeyEnv"):
+        value = entry.get(key)
+        if isinstance(value, str) and value.strip():
+            return True
+    return False
+
+
 def _load_yaml(path: Path) -> Dict[str, Any]:
     text = path.read_text(encoding="utf-8")
     if _USE_RUAMEL:
@@ -119,26 +145,37 @@ def _collect_custom_provider_names(config: Dict[str, Any]) -> List[Tuple[str, Di
 
 
 def _validate_provider_entry(name: str, entry: Dict[str, Any], errors: List[str], warns: List[str]) -> None:
-    if not entry.get("base_url"):
+    base_url = _entry_value(entry, "base_url", "url", "api", "baseUrl")
+    if not base_url:
         errors.append(f"custom provider {name!r}: missing base_url")
-    api_mode = entry.get("api_mode") or entry.get("transport")
-    if api_mode is not None and str(api_mode) not in VALID_API_MODES:
+    api_mode = _entry_value(entry, "api_mode", "transport", "apiMode")
+    if api_mode is not None and str(api_mode or "").strip().lower() not in VALID_API_MODES:
         _validate_api_mode_value(api_mode, f"custom provider {name!r}: api_mode", errors)
     if not api_mode:
         warns.append(
             f"custom provider {name!r}: api_mode not set; "
             "Hermes will guess from URL, which is fragile"
         )
-    if "api_key" not in entry and "key_env" not in entry and "api_key_env" not in entry:
+    if not _entry_has_auth(entry):
         warns.append(
             f"custom provider {name!r}: neither api_key nor key_env set; "
             "Hermes will use 'no-key-required' (OK for local servers, breaks hosted)"
         )
     models = entry.get("models")
-    if models is not None and not isinstance(models, dict):
+    if isinstance(models, list):
+        for item in models:
+            if not isinstance(item, str) or not item.strip():
+                errors.append(
+                    f"custom provider {name!r}: models list entries must be non-empty strings"
+                )
+        warns.append(
+            f"custom provider {name!r}: models is a list; Hermes accepts this, "
+            "but per-model context_length/max_output_tokens are unavailable"
+        )
+    elif models is not None and not isinstance(models, dict):
         errors.append(
             f"custom provider {name!r}: models must be a mapping of model_id -> "
-            "{{context_length, max_output_tokens}}"
+            "{{context_length, max_output_tokens}}, or a list of model ids"
         )
     elif isinstance(models, dict):
         for mid, mvals in models.items():
@@ -157,13 +194,13 @@ def _validate_provider_entry(name: str, entry: Dict[str, Any], errors: List[str]
                     f"custom provider {name!r}: models.{mid}.max_output_tokens must be a positive int "
                     f"(got {mx!r})"
                 )
-    ctx_top = entry.get("context_length")
+    ctx_top = _entry_value(entry, "context_length", "contextLength")
     if ctx_top is not None and (not isinstance(ctx_top, int) or ctx_top <= 0):
         errors.append(
             f"custom provider {name!r}: context_length must be a positive int "
             f"(got {ctx_top!r})"
         )
-    default_model = entry.get("model") or entry.get("default_model")
+    default_model = _entry_value(entry, "model", "default_model", "defaultModel")
     if default_model and isinstance(models, dict) and default_model not in models:
         warns.append(
             f"custom provider {name!r}: default model {default_model!r} is not listed "
@@ -182,13 +219,13 @@ def _validate_top_model(
         return
     provider = str(model.get("provider", "")).strip()
     if BUILTIN_PROVIDERS is not None and provider and provider.lower() not in BUILTIN_PROVIDERS:
-        if provider not in {p.lower() for p in provider_names}:
+        if provider.lower() not in {p.lower() for p in provider_names}:
             warns.append(
                 f"model.provider {provider!r} is not a built-in alias and is not declared "
                 f"in custom_providers/providers (known: {sorted(set(p.lower() for p in provider_names))})"
             )
     api_mode = model.get("api_mode")
-    if api_mode is not None and str(api_mode) not in VALID_API_MODES:
+    if api_mode is not None and str(api_mode or "").strip().lower() not in VALID_API_MODES:
         _validate_api_mode_value(api_mode, "model.api_mode", errors)
     for key in ("context_length", "max_tokens"):
         val = model.get(key)
@@ -235,7 +272,7 @@ def _validate_aux_compression(
                 f"{target!r}; declared: {sorted(known)}"
             )
     api_mode = comp.get("api_mode")
-    if api_mode is not None and str(api_mode) not in VALID_API_MODES:
+    if api_mode is not None and str(api_mode or "").strip().lower() not in VALID_API_MODES:
         _validate_api_mode_value(api_mode, "auxiliary.compression.api_mode", errors)
     ctx = comp.get("context_length")
     if ctx is not None and (not isinstance(ctx, int) or ctx <= 0):

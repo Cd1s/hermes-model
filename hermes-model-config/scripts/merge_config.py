@@ -30,7 +30,6 @@ VALID_API_MODES = {
     "chat_completions",
     "codex_responses",
     "anthropic_messages",
-    "bedrock_converse",
 }
 
 API_MODE_ALIASES = {

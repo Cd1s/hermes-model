@@ -78,14 +78,28 @@ case "$cmd" in
         fi
         diffs=0
         for f in config.yaml .env; do
-            if [[ -f "$src/$f" && -f "$HERMES_HOME/$f" ]]; then
-                if ! cmp -s "$src/$f" "$HERMES_HOME/$f"; then
-                    echo "DIFF $f"
-                    diff -u "$src/$f" "$HERMES_HOME/$f" | sed -n '1,40p' || true
-                    diffs=$((diffs+1))
-                else
-                    echo "MATCH $f"
-                fi
+            src_file="$src/$f"
+            cur_file="$HERMES_HOME/$f"
+            if [[ -f "$src_file" && ! -f "$cur_file" ]]; then
+                echo "MISSING $f"
+                diffs=$((diffs+1))
+                continue
+            fi
+            if [[ ! -f "$src_file" && -f "$cur_file" ]]; then
+                echo "EXTRA $f"
+                diffs=$((diffs+1))
+                continue
+            fi
+            if [[ ! -f "$src_file" && ! -f "$cur_file" ]]; then
+                echo "ABSENT $f"
+                continue
+            fi
+            if ! cmp -s "$src_file" "$cur_file"; then
+                echo "DIFF $f"
+                diff -u "$src_file" "$cur_file" | sed -n '1,40p' || true
+                diffs=$((diffs+1))
+            else
+                echo "MATCH $f"
             fi
         done
         if [[ $diffs -gt 0 ]]; then

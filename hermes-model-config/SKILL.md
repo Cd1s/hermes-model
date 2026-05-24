@@ -63,7 +63,7 @@ Required (refuse to proceed without):
 |---|---|---|
 | Provider name | `--provider-name` | Lowercase, underscores or hyphens, no spaces. This is the runtime slug — `model.provider: <name>` and `auxiliary.compression.provider: custom:<name>` must reference it exactly. |
 | Endpoint base URL | `--base-url` | OpenAI-compatible base, must include `/v1` for OpenAI/Codex wire APIs. |
-| Wire protocol | `--api-mode` | One of `chat_completions`, `codex_responses`, `anthropic_messages` (also accepted by this script: `bedrock_converse`). Use `codex_responses` for `/v1/responses`; do not write `responses` in config. |
+| Wire protocol | `--api-mode` | One of `chat_completions`, `codex_responses`, `anthropic_messages`. Use `codex_responses` for `/v1/responses`; do not write `responses` in config. |
 | Default model id | `--default-model` | Must match one of the `--model` entries below; auto-added with placeholder values if missing. |
 | At least one model | `--model id:context_length:max_output_tokens` | Repeatable. Both integers must be positive; never write `400K` style strings. |
 | Auth | `--api-key ''` OR `--key-env VARNAME` | Mutually exclusive. Use empty `api_key` for keyless local servers; use `key_env` for hosted endpoints (then place the secret in `~/.hermes/.env`). |
@@ -313,8 +313,8 @@ Full schema reference: `references/schema.md`. Pitfall catalog:
 - [ ] `curl -sS <base_url>/models` returns JSON listing the configured model
       (run from the box where Hermes will actually run).
 - [ ] If the merge was for testing only: `backup_restore.sh restore <tag>`
-      followed by `backup_restore.sh verify <tag>` reports MATCH for both
-      `config.yaml` and `.env`.
+      followed by `backup_restore.sh verify <tag>` reports no `DIFF`,
+      `MISSING`, or `EXTRA` entries.
 - [ ] Gateways restarted if they were running before the merge.
 
 ## One-shot recipes

@@ -116,3 +116,10 @@ keyed by name).
 If both are set, the base_url wins. Use this to force a specific endpoint when
 the provider auto-resolution would pick the wrong route (e.g. when two custom
 providers share a name across overlay layers).
+
+## 13. Bedrock is not a custom HTTP endpoint mode
+
+Hermes runtime has a `bedrock_converse` mode for the built-in Bedrock provider,
+but this skill configures custom HTTP endpoints with `base_url`. Do not use
+`merge_config.py --api-mode bedrock_converse`; configure Bedrock through
+Hermes' built-in provider flow instead.

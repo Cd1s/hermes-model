@@ -55,13 +55,13 @@ runtime; do not duplicate the same name in both sections.
 | Field | Type | Notes |
 |---|---|---|
 | `name` | str | Lowercase, used as both display name and the runtime slug. Referenced as `custom:<name>`. |
-| `base_url` | str | OpenAI-compatible base. Must end with `/v1` for OpenAI/Codex wire APIs. |
-| `api_key` | str | Inline auth. Leave `''` for keyless local servers. Never commit a real key. |
-| `key_env` | str | Name of env var in `~/.hermes/.env`. Preferred over `api_key`. Alias: `api_key_env`. |
-| `api_mode` | str | `chat_completions` (most OpenAI-compatible), `codex_responses` (Responses API / Codex-style tool calling), `anthropic_messages` (Anthropic-compatible proxies). Alias: `transport`. `responses` is an interactive picker alias only, not a config value. |
-| `model` | str | Default model id for this provider. Alias: `default_model`. |
-| `models` | dict | Per-model overrides. Keys are model ids; values must be dicts with `context_length` and `max_output_tokens`. |
-| `context_length` | int | Provider-level fallback when a model is not in `models`. |
+| `base_url` | str | OpenAI-compatible base. Must end with `/v1` for OpenAI/Codex wire APIs. Aliases: `url`, `api`, `baseUrl`. |
+| `api_key` | str | Inline auth. Leave `''` for keyless local servers. Never commit a real key. Alias: `apiKey`. |
+| `key_env` | str | Name of env var in `~/.hermes/.env`. Preferred over `api_key`. Aliases: `api_key_env`, `keyEnv`, `apiKeyEnv`. |
+| `api_mode` | str | `chat_completions` (most OpenAI-compatible), `codex_responses` (Responses API / Codex-style tool calling), `anthropic_messages` (Anthropic-compatible proxies). Aliases: `transport`, `apiMode`. `responses` is an interactive picker alias only, not a config value. |
+| `model` | str | Default model id for this provider. Aliases: `default_model`, `defaultModel`. |
+| `models` | dict/list | Prefer a dict of model id -> `{context_length, max_output_tokens}`. Hermes also accepts a list of model ids, but then per-model context/output metadata is unavailable. |
+| `context_length` | int | Provider-level fallback when a model is not in `models`. Alias: `contextLength`. |
 | `rate_limit_delay` | float | Optional cooldown between requests (seconds). |
 | `discover_models` | bool | Whether `hermes model` may query `/v1/models` to expand the list. |
 
