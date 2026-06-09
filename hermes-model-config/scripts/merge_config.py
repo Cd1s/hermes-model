@@ -106,11 +106,15 @@ def _dump_yaml_str(data: Dict[str, Any]) -> str:
 def parse_model_spec(spec: str) -> Tuple[str, int, int]:
     """Parse a "model_id:context:output" CLI arg.
 
+    Split from the right so model ids may contain ':' (for example,
+    Ollama-style names such as qwen3:32b:131072:8192).
+
     Examples:
         main-model:400000:32000
         compact-model:128000:16384
+        qwen3:32b:131072:8192
     """
-    parts = spec.split(":")
+    parts = spec.rsplit(":", 2)
     if len(parts) != 3:
         raise argparse.ArgumentTypeError(
             f"--model expects 'id:context_length:max_output_tokens', got {spec!r}"
